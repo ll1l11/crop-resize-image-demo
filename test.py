@@ -2,34 +2,25 @@
 from PIL import Image
 
 
-def calc_target_size(size, max_width, max_height, exact_size=False):
-    """calc target_size image size"""
-    assert size[0] and size[1]
-    assert max_width or max_height
+def get_target_size(img_size, size, exact_size=False):
+    """get target image size"""
+    assert img_size[0] and img_size[1]
+    assert size[0] or size[1]
 
     # calc by formula:
     # x / y == m / n
     # =>
     # x * n == y * m
-    if max_width:
-        target_height = max_width * size[1] // size[0]
-        if max_height:
-            target_height = min(target_height, max_height)
-    else:
-        target_height = max_height
+    size = list(size)
+    if not size[0]:
+        size[0] = size[1] * img_size[0] // img_size[1]
+    if not size[1]:
+        size[1] = size[0] * img_size[1] // img_size[0]
 
-    if max_height:
-        target_width = max_height * size[0] // size[1]
-        if max_width:
-            target_width = min(target_width, max_width)
+    if not exact_size:
+        return min(img_size[0], size[0]), min(img_size[1], size[1])
     else:
-        target_width = max_width
-
-    target_size = (target_width, target_height)
-    if size < target_size and not exact_size:
-        return size
-    else:
-        return target_size
+        return tuple(size)
 
 
 def crop_by_scale(img, width, height):
@@ -51,41 +42,35 @@ def crop_by_scale(img, width, height):
     return img.crop((left, upper, right,  lower))
 
 
-def crop_resize(img, max_width, max_height):
+def crop_resize(img, size, exact_size=False):
     # resize
-    target_size = calc_target_size(img.size, max_width, max_height)
+    target_size = get_target_size(img.size, size, exact_size)
+    print('生成的图片大小: ', target_size)
     img2 = crop_by_scale(img, target_size[0], target_size[1])
-    return img2.resize(target_size)
+    return img2.resize(target_size, Image.ANTIALIAS)
 
 
-def resize_crop(img, max_width, max_height):
-    target_size = calc_target_size(img.size, max_width, max_height)
-    size1 = (target_size[0], target_size[0] * img.size[1] // img.size[0])
-    size2 = (target_size[1] * img.size[0] // img.size[1], target_size[1])
-    print(size1, size2)
-    img2 = img.resize(max(size1, size2))
-    print('缩放后图片大小', img2.size)
-    return crop_by_scale(img2, target_size[0], target_size[1])
+# def resize_crop(img, max_width, max_height):
+#     target_size = calc_target_size(img.size, max_width, max_height)
+#     size1 = (target_size[0], target_size[0] * img.size[1] // img.size[0])
+#     size2 = (target_size[1] * img.size[0] // img.size[1], target_size[1])
+#     print(size1, size2)
+#     img2 = img.resize(max(size1, size2))
+#     print('缩放后图片大小', img2.size)
+#     return crop_by_scale(img2, target_size[0], target_size[1])
 
 
 def test():
-    img = Image.open('wanzi.jpg')
+    img = Image.open('chang.png')
+    # img = Image.open('/Users/xyz/Downloads/3.jpg')
     print('原图片大小:', img.size)
 
     # width = 200
     # height = 200
-    max_width = 100
-    max_height = 100
-    target_size = calc_target_size(img.size, max_width, max_height)
-    print('生成的图片大小: ', target_size)
-    img2 = resize_crop(img, max_width, max_height)
-    img3 = crop_resize(img, max_width, max_height)
-    # print('result: ', img.size)
-
-    # img2 = crop_by_scale(img, 1, 1)
-
-    img2.save('img2.jpg')
-    img3.save('img3.jpg')
+    size = (255, 255)
+    exact_size = False
+    img3 = crop_resize(img, size, exact_size)
+    img3.save('img4.png', 'PNG')
 
 
 if __name__ == '__main__':
